@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Museo Natalía</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+
+/* ─── TOKENS (PALETA DE MUSEO FÍSICO) ────────────────────── */
+:root {
+  --pure-white: #ffffff;
+  --wall:       #f7f6f3;
+  --pedestal:   #ebe8e1;
+  --border:     #d6d3cc;
+  --muted:      #85827d;
+  --ink:        #2a2826;
+  --accent:     #5e5c58;
+}
+
+/* ─── RESET ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  background: var(--wall);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden; /* Bloquea el scroll hasta abrir la carta */
+}
+
+/* ─── UTILITY ────────────────────────────────────────────── */
+.serif { font-family: 'Playfair Display', Georgia, serif; }
+.label {
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ─── MODAL CARTA / REPRODUCTOR ──────────────────────────── */
+#welcome-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--wall);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+
+#welcome-modal.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.carta-modal {
+  background: var(--pure-white);
+  border: 1px solid var(--border);
+  padding: 48px 40px;
+  max-width: 460px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04);
+}
+
+.carta-eyebrow {
+  font-size: 9px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+
+.carta-titulo {
+  font-size: 24px;
+  font-style: italic;
+  margin-bottom: 20px;
+  color: var(--ink);
+}
+
+.carta-texto {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--muted);
+  margin-bottom: 32px;
+}
+
+.btn-abrir {
+  background: var(--ink);
+  color: var(--pure-white);
+  border: none;
+  padding: 14px 28px;
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.3s ease, transform 0.2s ease;
+}
+
+.btn-abrir:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+/* ─── REVEAL ─────────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 1s cubic-bezier(0.25, 1, 0.5, 1), transform 1s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.reveal.in { opacity: 1; transform: none; }
+.reveal.d1 { transition-delay: 0.1s; }
+.reveal.d2 { transition-delay: 0.2s; }
+.reveal.d3 { transition-delay: 0.3s; }
+.reveal.d4 { transition-delay: 0.4s; }
+
+/* ─── COVER ──────────────────────────────────────────────── */
+#cover {
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  padding: 0 48px 48px;
+  background: var(--pure-white);
+  position: relative;
+  overflow: hidden;
+}
+
+#cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 50% at 50% 100%, rgba(0,0,0,0.03) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.cover-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0;
+  padding-top: 80px;
+}
+
+.cover-eyebrow {
+  font-size: 10px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 40px;
+  opacity: 0;
+  animation: up 1s ease 0.3s forwards;
+}
+
+.cover-name {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(64px, 13vw, 136px);
+  font-weight: 400;
+  font-style: italic;
+  color: var(--ink);
+  line-height: 0.9;
+  letter-spacing: -2px;
+  opacity: 0;
+  animation: up 1.1s ease 0.5s forwards;
+}
+
+.cover-rule {
+  width: 1px;
+  height: 56px;
+  background: linear-gradient(to bottom, var(--muted), transparent);
+  margin: 36px auto;
+  opacity: 0;
+  animation: up 1s ease 0.8s forwards;
+}
+
+.cover-sub {
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  opacity: 0;
+  animation: up 1s ease 1s forwards;
+  max-width: 320px;
+  line-height: 1.8;
+}
+
+.cover-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  opacity: 0;
+  animation: up 1s ease 1.3s forwards;
+  position: relative;
+  z-index: 10;
+}
+
+.cover-bottom-left {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  line-height: 1.8;
+}
+
+.scroll-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 9px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.scroll-line {
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(to bottom, var(--ink), transparent);
+  animation: pulse 2s ease infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ─── NAV ────────────────────────────────────────────────── */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: 64px;
+  background: rgba(247, 246, 243, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 48px;
+}
+
+.nav-brand {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 17px;
+  color: var(--ink);
+  font-weight: 400;
+}
+
+.nav-rooms {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+}
+
+.nav-rooms a {
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.nav-rooms a:hover { color: var(--ink); }
+
+/* ─── SALA WRAPPER ───────────────────────────────────────── */
+.sala {
+  padding: 140px 48px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.sala-full {
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sala + .sala { border-top: 1px solid var(--border); }
+
+/* sala header */
+.sala-header {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 0 40px;
+  align-items: start;
+  margin-bottom: 80px;
+}
+
+.sala-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 72px;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--border);
+  line-height: 1;
+  padding-top: 4px;
+}
+
+.sala-tag { margin-bottom: 16px; }
+
+.sala-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.1;
+  color: var(--ink);
+  margin-bottom: 24px;
+}
+
+.sala-intro {
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--muted);
+  max-width: 560px;
+}
+
+/* ─── FOTO Y ENMARCADOS ──────────────────────────────────── */
+.foto {
+  position: relative;
+  overflow: hidden;
+  padding: 0 !important;
+  background: var(--pedestal);
+  border: 12px solid var(--pure-white);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  transition: transform 0.4s ease;
+}
+
+.foto:hover {
+  transform: scale(1.01);
+}
+
+.foto svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--muted);
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.foto img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  display: block !important;
+}
+
+/* ─── SALA I — LA ARTISTA ────────────────────────────────── */
+.artista-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  margin-bottom: 100px;
+  align-items: center;
+}
+
+.artista-foto-grande {
+  aspect-ratio: 3 / 4 !important;
+  width: 100% !important;
+  height: auto !important;
+}
+
+.artista-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.artista-foto-small { 
+  aspect-ratio: 4 / 3 !important; 
+  width: 80% !important; 
+  height: auto !important;
+  margin-left: auto; 
+}
+
+.artista-cedula {
+  padding: 40px;
+  background: var(--pure-white);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  position: relative;
+}
+
+.artista-cedula::before {
+  content: '';
+  position: absolute;
+  top: 40px;
+  left: 0;
+  width: 3px;
+  height: 40px;
+  background: var(--border);
+}
+
+.artista-cedula-titulo {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 20px;
+  margin-bottom: 12px;
+  color: var(--ink);
+}
+
+.artista-cedula-desc {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+
+.pullquote {
+  max-width: 600px;
+  padding: 0 0 0 32px;
+  border-left: 1px solid var(--border);
+  margin: 0 auto;
+}
+
+.pullquote p {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: clamp(19px, 2.5vw, 26px);
+  line-height: 1.65;
+  color: var(--ink);
+  margin-bottom: 20px;
+}
+
+.pullquote cite {
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-style: normal;
+}
+
+/* ─── SALA II — EL ORIGEN ────────────────────────────────── */
+#sala-2 { background: var(--pure-white); }
+
+.origen-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: start;
+  margin-bottom: 80px;
+}
+
+.origen-text p {
+  font-size: 16px;
+  line-height: 1.95;
+  color: #4a4744;
+  margin-bottom: 24px;
+}
+
+.origen-foto {
+  position: sticky;
+  top: 120px;
+}
+
+.origen-foto .foto {
+  aspect-ratio: 3 / 4 !important;
+  width: 100% !important;
+  height: auto !important;
+  margin-bottom: 20px;
+}
+
+.origen-foto-caption {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* ─── SALA III — RELIQUIAS ───────────────────────────────── */
+#sala-3 { 
+  background: var(--wall); 
+  max-width: none; 
+  padding-left: 48px; 
+  padding-right: 48px; 
+}
+#sala-3 .sala { max-width: 1100px; padding: 140px 0; margin: 0 auto; }
+
+.reliquias {
+  display: flex;
+  flex-direction: column;
+}
+
+.reliquia {
+  display: grid;
+  grid-template-columns: 180px 1fr 340px;
+  gap: 0 48px;
+  padding: 64px 0;
+  border-top: 1px solid var(--border);
+  align-items: center;
+}
+
+.reliquia:last-child { border-bottom: 1px solid var(--border); }
+
+.reliquia-id {
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.reliquia-title {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 24px;
+  margin-bottom: 16px;
+  color: var(--ink);
+}
+
+.reliquia-desc {
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--muted);
+  max-width: 420px;
+}
+
+.reliquia-foto {
+  aspect-ratio: 4 / 3 !important;
+  width: 100% !important;
+  height: auto !important;
+  border-width: 8px;
+}
+
+/* ─── SALA IV — LA LUNA ──────────────────────────────────── */
+#sala-4 {
+  background: #161514;
+  color: #f7f6f3;
+  max-width: none;
+  padding: 0;
+}
+
+.luna-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 140px 48px;
+}
+
+#sala-4 .sala-num { color: rgba(255,255,255,0.08); }
+#sala-4 .sala-tag { color: #8e8e8e; }
+#sala-4 .sala-title { color: #ffffff; }
+#sala-4 .sala-intro { color: rgba(255,255,255,0.6); }
+
+.luna-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 100px;
+  align-items: center;
+  margin-top: 100px;
+}
+
+.luna-orb {
+  aspect-ratio: 1;
+  max-width: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 36%,
+    #ffffff 0%,
+    #e8e8e8 20%,
+    #b0b0b0 50%,
+    #575757 80%,
+    #242424 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.05),
+    0 0 100px rgba(255,255,255,0.15),
+    inset -40px -30px 60px rgba(0,0,0,0.7);
+  margin: 0 auto;
+  position: relative;
+}
+
+.luna-orb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-image: radial-gradient(circle at 60% 40%, rgba(0,0,0,0.08) 0%, transparent 10%),
+                    radial-gradient(circle at 30% 70%, rgba(0,0,0,0.1) 0%, transparent 15%);
+  pointer-events: none;
+}
+
+.luna-text p {
+  font-size: 16px;
+  line-height: 1.9;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 28px;
+}
+
+.luna-promise {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 22px;
+  line-height: 1.6;
+  color: #ffffff;
+  border-left: 1px solid rgba(255,255,255,0.2);
+  padding-left: 32px;
+  margin-top: 56px;
+}
+
+/* ─── SALA V — LO QUE VIENE ──────────────────────────────── */
+#sala-5 { background: var(--pure-white); }
+
+.futuro-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  margin-bottom: 100px;
+  border: 1px solid var(--border);
+}
+
+.futuro-item {
+  background: var(--pure-white);
+  padding: 64px 48px;
+  transition: background 0.3s ease;
+}
+
+.futuro-item:hover {
+  background: var(--wall);
+}
+
+.futuro-item-tag {
+  font-size: 9px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+.futuro-item-title {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 26px;
+  margin-bottom: 16px;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.futuro-item-desc {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+
+/* ─── CARTA FINAL ────────────────────────────────────────── */
+.carta-wrap {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 80px 0;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.carta-wrap p {
+  font-size: 19px;
+  line-height: 2;
+  color: var(--ink);
+  margin-bottom: 32px;
+  font-style: italic;
+  font-family: 'Playfair Display', serif;
+  font-weight: 400;
+}
+
+.carta-firma {
+  display: block;
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 28px;
+  color: var(--muted);
+  margin-top: 48px;
+}
+
+/* ─── FOOTER ─────────────────────────────────────────────── */
+footer {
+  background: var(--wall);
+  border-top: 1px solid var(--border);
+  padding: 80px 48px;
+  text-align: center;
+}
+
+.footer-name {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 32px;
+  color: var(--ink);
+  margin-bottom: 16px;
+}
+
+.footer-note {
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────── */
+@media (max-width: 900px) {
+  #cover, nav, .sala, .luna-inner { padding-left: 24px; padding-right: 24px; }
+  .artista-grid { grid-template-columns: 1fr; gap: 40px; }
+  .artista-col-right { gap: 24px; }
+  .artista-foto-small { width: 100% !important; }
+  .origen-body { grid-template-columns: 1fr; gap: 40px; }
+  .origen-foto { position: static; }
+  
+  /* Ajuste responsivo para que se muestren las reliquias y sus fotos en celular */
+  .reliquia { 
+    grid-template-columns: 1fr; 
+    gap: 24px; 
+    padding: 48px 0; 
+  }
+  .reliquia-foto { 
+    display: block !important; 
+    width: 100% !important;
+    aspect-ratio: 4 / 3 !important;
+  }
+  
+  .luna-body { grid-template-columns: 1fr; gap: 60px; }
+  .luna-orb { max-width: 240px; }
+  .futuro-grid { grid-template-columns: 1fr; }
+  .futuro-item { padding: 40px 32px; }
+  .sala-header { grid-template-columns: 48px 1fr; gap: 0 24px; margin-bottom: 60px; }
+  .sala-num { font-size: 48px; }
+  nav { padding: 0 24px; }
+  .nav-rooms { display: none; }
+  footer { padding: 60px 24px; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- AUDIO DE FONDO -->
+<audio id="bg-audio" src="cancion.mp3" loop preload="auto"></audio>
+
+<!-- CARTA DE ENTRADA AL MUSEO -->
+<div id="welcome-modal">
+  <div class="carta-modal">
+    <div class="carta-eyebrow">Entrada General · Colección Privada</div>
+    <h2 class="carta-titulo serif">Bienvenida al Museo</h2>
+    
+    <div class="carta-texto">
+      <p>holi amorcito bello, si estas leyendo esto es porque tienes ojos xd, no es cierto amor pero si estas leyendo esto es porque esccaneaste el qr para tener todas tus contraseñas 😎😎😎, no es cierto amorcito pero es porque cumplimos 4 meses amorcito y no sabes lo feliz que me has hecho, quise hacerte un adelanto de el museo que te tengo prometido para cuando vivamos juntos, porque tu eres una obra de arte &lt;3 </p>
+    </div>
+
+    <button id="btn-enter" class="btn-abrir">Entrar al Museo</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- COVER                                                   -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="cover">
+  <div class="cover-center">
+    <div class="cover-eyebrow">Colección permanente · 2025</div>
+    <h1 class="cover-name serif">Natalía</h1>
+    <div class="cover-rule"></div>
+    <p class="cover-sub">Un museo dedicado a la persona que mas amo en mi mundo, y la mujer de mis sueños.</p>
+  </div>
+  <div class="cover-bottom">
+    <div class="cover-bottom-left">
+      Museo de Naty :3<br>
+    </div>
+    <a href="#sala-1" class="scroll-hint">
+      <span class="scroll-line"></span>
+      <span>Entrar</span>
+    </a>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- NAV                                                     -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<nav>
+  <span class="nav-brand serif">Museo de Natalía</span>
+  <ul class="nav-rooms">
+    <li><a href="#sala-1">Mi amor</a></li>
+    <li><a href="#sala-2">El Origen</a></li>
+    <li><a href="#sala-3">Las Reliquias</a></li>
+    <li><a href="#sala-4">Futuro</a></li>
+    <li><a href="#sala-5">Lo que Viene</a></li>
+  </ul>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SALA I — LA ARTISTA                                     -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="sala-1">
+<div class="sala">
+
+  <div class="sala-header">
+    <div class="sala-num serif reveal">I</div>
+    <div class="sala-head-right">
+      <div class="sala-tag label reveal d1">Sala I</div>
+      <h2 class="sala-title reveal d2">Mi amor</h2>
+      <p class="sala-intro reveal d3">
+Naty es una persona extraordinaria, siempre ilumina mis dias, estoy profundamente enamorado de ella, tiene un don que hace que todo sea mejor a su lado
+      </p>
+    </div>
+  </div>
+
+  <div class="artista-grid reveal">
+    <div class="foto artista-foto-grande">
+      <img src="foto1.jpg" alt="Natalía">
+    </div>  
+    <div class="artista-col-right">
+      <div class="foto artista-foto-small">
+        <img src="foto2.jpg" alt="Natalía">
+      </div>
+      <div class="artista-cedula">
+        <div class="artista-cedula-titulo serif">Retrato de una persona extraordinaria</div>
+        <div class="artista-cedula-desc">
+          Tiene un alma tan pura, tan llena de amor y de vida, que uno se pregunta 
+          cómo cabe todo eso en una sola persona.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pullquote reveal">
+    <p>"Hay almas que tienen el don de hacer que todo lo que tocan se vuelva sagrado. Ella es una de esas almas."</p>
+    <cite>Cédula curatorial · Museo de Natalía</cite>
+  </div>
+
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SALA II — EL ORIGEN                                     -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="sala-2">
+<div class="sala">
+
+  <div class="sala-header">
+    <div class="sala-num serif reveal">II</div>
+    <div class="sala-head-right">
+      <div class="sala-tag label reveal d1">Sala II</div>
+      <h2 class="sala-title reveal d2">El Origen</h2>
+      <p class="sala-intro reveal d3">
+        Toda gran historia tiene un momento exacto en que empieza. 
+      </p>
+    </div>
+  </div>
+
+  <div class="origen-body">
+    <div class="origen-text reveal">
+      <p>
+        Nueve meses de conversación. Cuatro de amor. Una vida entera por delante.
+      </p>
+      <p>
+        Pero hubo un instante preciso — fue un viernes. En la prepa, tarde ya, 
+        hablando de cosas que no parecían importantes y que resultaron ser las más importantes del mundo. 
+        Fue ahí donde entendi que era la persona mas parecida a mi, y sin saberlo la persona mas importante en mi vida de la que me enamoraria para siempre
+      </p>
+      <p>
+        Podían hablar de cosas completamente absurdas y esas cosas eran, de alguna forma, 
+        las más importantes del mundo. Contigo, el tiempo no se sentía como tiempo.
+      </p>
+      <p>
+        Ese viernes me enamoré. Y no lo supe hasta que ya era demasiado tarde para no amarte.
+      </p>
+      <p>
+        Si tuviera que quedarme en un momento el resto de mis dias
+      </p>
+      <p>
+        Yo me quedaria en ese viernes.
+      </p>
+    </div>
+    <div class="origen-foto reveal d2">
+      <div class="foto origen-foto-item">
+        <img src="foto3.jpg" alt="El Origen">
+      </div>
+      <div class="label" style="padding: 12px 0 0 0; text-align: center;">El origen · 2025 · Colección privada</div>
+    </div>
+  </div>
+
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SALA III — LAS RELIQUIAS                                -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="sala-3">
+<div class="sala">
+
+  <div class="sala-header">
+    <div class="sala-num serif reveal">III</div>
+    <div class="sala-head-right">
+      <div class="sala-tag label reveal d1">Sala III</div>
+      <h2 class="sala-title reveal d2">Las Reliquias</h2>
+      <p class="sala-intro reveal d3">
+        No todas las obras de arte cuelgan en paredes. 
+        Las más importantes viven en la memoria, en la costumbre, 
+        y otras las tienes enfrente, su belleza te ilumina, tal cual como natynuv
+      </p>
+    </div>
+  </div>
+
+  <div class="reliquias">
+
+    <div class="reliquia reveal">
+      <div class="reliquia-id label">Reliquia 001</div>
+      <div class="reliquia-body">
+        <div class="reliquia-title serif">El tiempo juntos</div>
+        <div class="reliquia-desc">
+          Siempre supe que quería seguir compartiendo mis dias con la mejor novia del mundo
+        </div>
+      </div>
+      <div class="foto reliquia-foto">
+        <img src="foto4.jpg" alt="Reliquia 001">
+      </div>
+    </div>
+
+    <div class="reliquia reveal">
+      <div class="reliquia-id label">Reliquia 002</div>
+      <div class="reliquia-body">
+        <div class="reliquia-title serif">Las cartas</div>
+        <div class="reliquia-desc">
+          Me has escrito muchas cartas y te juro que las guardo todas. Tienen un lugar sagrado en mi cuarto y en mi corazón, porque son lo más valioso que tengo en la vida. Cada vez que las releo me acuerdo de lo ridículamente afortunado que soy por saber que nos amamos así, tan de verdad, como dos locos profundamente enamorados.
+        </div>
+      </div>
+      <div class="foto reliquia-foto">
+        <img src="foto5.jpg" alt="Reliquia 002">
+      </div>
+    </div>
+
+    <div class="reliquia reveal">
+      <div class="reliquia-id label">Reliquia 003</div>
+      <div class="reliquia-body">
+        <div class="reliquia-title serif">Momentos juntos</div>
+        <div class="reliquia-desc">
+          Compartir la vida contigo transforma cualquier segundo en una verdadera reliquia. Tu presencia es tan extraordinaria que simplemente estar a tu lado se siente como contemplar la obra de arte más hermosa. A veces me convenzo de que el tiempo nos tiene envidia y por eso corre tan rápido cuando estamos juntos; pero no me preocupa. Llegará el día en que el reloj deje de importar, donde el tiempo sobre y nos pertenezca por completo para no volver a despedirnos.
+        </div>
+      </div>
+      <div class="foto reliquia-foto">
+        <img src="foto6.jpg" alt="Reliquia 003">
+      </div>
+    </div>
+
+    <div class="reliquia reveal">
+      <div class="reliquia-id label">Reliquia 004</div>
+      <div class="reliquia-body">
+        <div class="reliquia-title serif">Eternamente enamorado de ti</div>
+        <div class="reliquia-desc">
+          Dicen que los hombres siempre han buscado respuestas en el cielo, pero a mí me bastó mirar a la tierra para encontrar algo infinito. Te escribo estas líneas porque amar tu forma de existir es el acto de fe más puro que conozco.
+        </div>
+      </div>
+      <div class="foto reliquia-foto">
+        <img src="foto7.jpg" alt="Reliquia 004">
+      </div>
+    </div>
+
+    <div class="reliquia reveal">
+      <div class="reliquia-id label">Reliquia 005</div>
+      <div class="reliquia-body">
+        <div class="reliquia-title serif">&lt;3</div>
+        <div class="reliquia-desc">
+        </div>
+      </div>
+      <div class="foto reliquia-foto">
+        <img src="foto8.jpg" alt="Reliquia 005">
+      </div>
+    </div>
+
+    <div class="reliquia reveal">
+      <div class="reliquia-id label">Reliquia 006</div>
+      <div class="reliquia-body">
+        <div class="reliquia-title serif">&lt;3</div>
+        <div class="reliquia-desc">
+        </div>
+      </div>
+      <div class="foto reliquia-foto">
+        <img src="foto9.jpg" alt="Reliquia 006">
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SALA IV — LA LUNA                                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="sala-4">
+<div class="luna-inner">
+
+  <div class="sala-header">
+    <div class="sala-num serif reveal">IV</div>
+    <div class="sala-head-right">
+      <div class="sala-tag label reveal d1">Sala IV</div>
+      <h2 class="sala-title reveal d2">El futuro</h2>
+      <p class="sala-intro reveal d3">
+Esta sala esta dedicada a las cosas que hare por nosotros y por ti, porque te amo y quiero con todo mi corazon, porque gastaria todos mis deseos porque seas la mujer de mis hijos
+      </p>
+    </div>
+  </div>
+
+  <div class="luna-body">
+    <div class="luna-orb reveal"></div>
+    <div class="luna-text reveal d2">
+      <p>
+Te amo y prometo jamas cambiar la manera en la que te trato, siempre seras amada con toda la intensidad del mundo, siempre pienso que ya tengo lista de cosas que voy a poner en nuestros votos, me llena de ilusion decirnoslas, y me da duda y pavor pensar que no me podras ayudar a hacerla porque siento que tengo que acudir a ti para todo, te amo de la forma mas pura mi amor, hoy y siempre
+      </p>
+      <p>
+      </p>
+      <p>
+Tenemos una promesa pendiente, ponerle Luna a nuestra hija porque se lo prometimos a la Luna, para ser siempre felices juntos
+      </p>
+      <div class="luna-promise reveal d3">
+      </div>
+    </div>
+  </div>
+
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SALA V — LO QUE VIENE                                   -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="sala-5">
+<div class="sala">
+
+  <div class="sala-header">
+    <div class="sala-num serif reveal">V</div>
+    <div class="sala-head-right">
+      <div class="sala-tag label reveal d1">Sala V</div>
+      <h2 class="sala-title reveal d2">Lo que Viene</h2>
+      <p class="sala-intro reveal d3">
+        Todo museo tiene una sala dedicada a las adquisiciones futuras. 
+        Esta está en construcción permanente.
+      </p>
+    </div>
+  </div>
+
+  <div class="futuro-grid reveal">
+    <div class="futuro-item">
+      <div class="futuro-item-tag label">Pendiente</div>
+      <div class="futuro-item-title serif">Casarnos en mi cumpleaños</div>
+      <div class="futuro-item-desc">
+        Una deuda pendiente. Comprometernos cuando cumpla 18 para sellar lo nuestro
+      </div>
+    </div>
+    <div class="futuro-item">
+      <div class="futuro-item-tag label">Reservado</div>
+      <div class="futuro-item-title serif">Las canciones de la boda</div>
+      <div class="futuro-item-desc">
+        Ya sabemos cuales seran y en que mes sera, por una vida juntos
+      </div>
+    </div>
+    <div class="futuro-item">
+      <div class="futuro-item-tag label">Próximamente</div>
+      <div class="futuro-item-title serif">En construccion</div>
+      <div class="futuro-item-desc">
+Por muchos meses, haciendo recuerdos para contarle a nuestros hijos y nietos  
+      </div>
+    </div>
+    <div class="futuro-item">
+      <div class="futuro-item-tag label">Una promesa</div>
+      <div class="futuro-item-title serif">El museo real</div>
+      <div class="futuro-item-desc">
+        Un día habrá paredes de verdad. Habrá marcos. Habrá todo lo que ella merece. 
+        Esta web es solo el boceto
+      </div>
+    </div>
+  </div>
+
+  <div class="carta-wrap reveal">
+    <p>
+      Naty,<br><br>
+      Nunca fuiste una casualidad.<br>
+      Fuiste mi destino más bonito.
+    </p>
+    <p>
+      Este museo existe porque tú existes.<br>
+      Y mientras tú existas, seguirá creciendo.
+    </p>
+    <p>
+      Te amo hoy más que nunca.<br>
+      Y mañana, más que hoy.
+    </p>
+    <span class="carta-firma serif">— emicici </span>
+  </div>
+
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- FOOTER                                                  -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<footer>
+  <div class="footer-name serif">Museo Natalía</div>
+  <div class="footer-note">Colección permanente · Entrada libre · Abierto siempre</div>
+</footer>
+
+<script>
+  // LÓGICA DE REPRODUCCIÓN Y CARTA DE ENTRADA
+  const btnEnter = document.getElementById('btn-enter');
+  const modal = document.getElementById('welcome-modal');
+  const audio = document.getElementById('bg-audio');
+
+  btnEnter.addEventListener('click', () => {
+    audio.play().catch(error => console.log("Audio autostart block:", error));
+    modal.classList.add('hidden');
+    document.body.style.overflow = 'auto';
+  });
+
+  // LÓGICA DE ANIMACIÓN AL HACER SCROLL
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  document.querySelector('a[href="#sala-1"]')?.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelector('#sala-1').scrollIntoView({ behavior: 'smooth' });
+  });
+</script>
+</body>
+</html>
